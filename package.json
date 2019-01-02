@@ -1,0 +1,28 @@
+{
+  "name": "warstrike",
+  "version": "0.1.0",
+  "description": "Turn based strategy game.",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ovsoinc/warstrike.git"
+  },
+  "author": "",
+  "license": "AGPL-3.0",
+  "bugs": {
+    "url": "https://github.com/ovsoinc/warstrike/issues"
+  },
+  "homepage": "https://github.com/ovsoinc/warstrike#readme",
+  "dependencies": {
+    "axios": "^0.18.0",
+    "debug": "^4.0.1",
+    "dotenv": "^6.0.0",
+    "ioredis": "^4.0.0",
+    "request": "^2.88.0",
+    "request-promise": "^4.2.2",
+    "socket.io": "^2.1.1"
+  }
+}
