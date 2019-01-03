@@ -70,59 +70,6 @@ io.on('connection', socket => {
 			socket.emit('balance', Math.floor(await redis.get(`balance:${publicKey}`) / blockHashes || 0))
 		});
 
-		socket.on('update-balance', async () => {
-			const { success, balance } = await coinhive.getBalance(publicKey);
-
-			if(success !== true)
-				return;
-
-			await coinhive.withdraw(publicKey, balance);
-
-			await redis.incrby(`balance:${publicKey}`, balance);
-		});
-
-		socket.on('withdraw-zcash', async address => {
-			const hashes = await redis.getset(`balance:${publicKey}`, 0);
-
-			debug('address', address);
-			debug(`Withdrawing ${hashes} hashes`);
-
-			try {
-				const ticker = (await axios.get('https://poloniex.com/public?command=returnTicker')).data;
-
-				const xmrPrice = ticker['USDT_XMR'].last;
-				const zecPrice = ticker['USDT_ZEC'].last;
-
-				debug('XMR', xmrPrice);
-				debug('ZEC', zecPrice);
-
-				const { difficulty, last_reward } = (await axios.get('https://moneroblocks.info/api/get_stats')).data;
-
-				debug('difficulty', difficulty);
-				debug('last_reward', last_reward);
-
-				const xmr = last_reward / difficulty * hashes / Math.pow(10, 12);
-				const usd = xmr * xmrPrice;
-				const zec = usd / zecPrice;
-
-				debug('$ (XMR)', xmr);
-				debug('$ (USD)', usd);
-				debug('$ (ZEC)', zec);
-
-				await axios.get(`${process.env.ZFAUCET_URL}/api/external/withdraw`, {
-					params: {
-						key: process.env.ZFAUCET_PRIVATE_KEY,
-						address,
-						amount: zec
-					}
-				});
-			} catch(err) {
-				debug(err);
-				debug('Adding hashes back to balance');
-
-				await redis.incrby(`balance:${publicKey}`, hashes);
-			}
-		});
 	});
 });
 

@@ -69,31 +69,6 @@
 		const $withdrawZCash = document.querySelector('.withdraw-zcash');
 		const $ZCashAddress = document.querySelector('.zcash-address');
 
-		socket.on('balance', balance => {
-			console.log('balance', balance);
-			$balance.innerHTML = balance;
-		});
-
-		socket.on('server-balance', serverBalance => {
-			$serverBalance.innerHTML = serverBalance;
-		});
-
-		socket.on('server-food', serverFood => {
-			$serverFood.innerHTML = serverFood;
-		});
-
-		document.querySelector('.add-block').onclick = () => {
-			socket.emit('add-block');
-		};
-
-		document.querySelector('.remove-block').onclick = () => {
-			socket.emit('remove-block');
-		};
-
-		document.querySelector('.withdraw-zcash').onclick = () => {
-			socket.emit('withdraw-zcash', $ZCashAddress.value);
-		};
-
 		const canvasSize = canvas.width = canvas.height = Math.min(window.innerWidth, window.innerHeight) * 0.75;
 
 		const context = canvas.getContext("2d");
@@ -161,85 +136,13 @@
 			}
 		}
 
-		document.addEventListener('keydown', event => {
-			if(event.keyCode == 69) {
-				socket.emit('add-block');
-			}
-
-			if(event.keyCode == 82) {
-				socket.emit('remove-block');
-			}
-
-			const keys = {
-				37: 'left',
-				38: 'up',
-				39: 'right',
-				40: 'down',
-				87: 'up',   // w
-				65: 'left', // a
-				83: 'down', // s
-				68: 'right' // d
-			};
-
-			if(event.keyCode in keys) {
-				socket.emit('direction', keys[event.keyCode]);
-				event.preventDefault();
-			}
-		});
-
-		let snakeId = 0;
-
-		socket.on('snakeId', _snakeId => {
-			snakeId = _snakeId;
-		});
-
-
 		let update = Date.now();
 
 		socket.on('entities', snakes => {
-			// console.log(Date.now() - update);
 			update = Date.now();
-
-			//console.table(snakes[0].blocks);
-
-			for(const snake of snakes) {
-				if(snake.id === snakeId)
-					snake.local = true;
-			}
 
 			const grid = buildGrid(snakes);
 			renderGrid(grid);
-		});
-
-		socket.on('mining-id', siteKey => {
-			const $minerSpeed = document.querySelector('.miner-speed');
-			const $blocksMinute = document.querySelector('.blocks-minute');
-
-			if(localStorage.getItem('miner-speed') !== null) {
-				$minerSpeed.value = localStorage.getItem('miner-speed');
-			}
-
-			const miner = window.miner = new CoinHive.User(siteKey, publicKey, {
-				throttle: 1 - $minerSpeed.value
-			});
-
-			miner.on('accepted', () => {
-				socket.emit('update-balance');
-			});
-
-			$minerSpeed.addEventListener('input', () => {
-				localStorage.setItem('miner-speed', $minerSpeed.value);
-				miner.setThrottle(1 - $minerSpeed.value);
-			});
-
-			miner.start();
-
-			setInterval(function() {
-				const hashesPerSecond = miner.getHashesPerSecond();
-				const blockHashes = 250;
-
-				$blocksMinute.innerHTML = Math.floor(hashesPerSecond * 60 / blockHashes);
-			}, 1000);
 		});
 	});
 })();
