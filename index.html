@@ -1,0 +1,53 @@
+<html>
+	<body>
+		<canvas id="canvas"></canvas>
+
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.1.1/socket.io.js"></script>
+
+		<script>
+		const socket = io(`${location.origin}:3055`);
+		const canvas = document.getElementById("canvas");
+
+		const canvasSize = canvas.width = canvas.height = 500;
+
+		const context = canvas.getContext("2d");
+
+		const canvasBox = 10;
+		const boxSize = canvasSize / canvasBox;
+
+		const backgroundColor = 'A2D149';
+		const foregroundColor = 'AAD751';
+		const snakeColor = '4876EC';
+		const userSnakeColor = '222';
+
+		function buildGrid() {
+			const grid = [];
+
+			context.clearRect(0, 0, canvas.width, canvas.height);
+
+			for(let i = 0; i < canvasBox; i++) {
+				grid[i] = [];
+
+				for(let j = 0; j < canvasBox; j++) {
+					grid[i][j] = (j % 2 && !(i % 2)) || (!(j % 2) && (i % 2)) ? backgroundColor : foregroundColor;
+				}
+			}
+
+			return grid;
+		}
+
+		function renderGrid(grid) {
+			for(const r in grid) {
+				for(const c in grid[r]) {
+					context.fillStyle = `#${grid[r][c].toUpperCase()}`;
+					context.fillRect(boxSize * c, boxSize * r, boxSize, boxSize);
+					context.stroke();
+				}
+			}
+		}
+
+		const grid = buildGrid();
+		renderGrid(grid);
+		</script>
+	</body>
+</html>

@@ -1,86 +1,64 @@
-const config = require('./config');
-
 const Koa = require('koa');
 const serve = require('koa-static');
-const debug = require('debug')('snake');
-const assert = require('assert');
-const crypto = require('crypto');
-const axios = require('axios');
 
 const app = new Koa();
+app.use(serve(`${__dirname}`));
+
 const server = require('http').createServer(app.callback());
 const io = require('socket.io')(server);
 
-const redis = require('./lib/redis');
-const Grid = require('./lib/Grid');
-const Snake = require('./lib/Snake');
-const Food = require('./lib/Food');
-const detectCollisions = require('./lib/detectCollisions');
-const coinhive = require('./lib/coinhive');
-
-
-app.use(serve(`${__dirname}/public`));
-
-const grid = new Grid(50);
-
-const blockHashes = 250;
+const snakes = [];
+let id = 0;
 
 io.on('connection', socket => {
-	socket.on('init', async privateKey => {
-		const publicKey = (() => {
-			const hash = crypto.createHash('sha256');
+	const snake = {
+		x: 5,
+		y: 5,
+		direction: 'up',
+		id: id++
+	};
 
-			hash.update(privateKey, 'hex');
+	snakes.push(snake);
 
-			return hash.digest('hex');
-		})();
+	socket.emit('snakeId', snake.id);
+	socket.emit('snakes', snakes);
 
-		console.log({ privateKey, publicKey });
+	socket.on('direction', direction => {
+		snake.direction = direction;
+	});
 
-		const snake = new Snake(grid.getRandomEmptyBlock());
-
-		snake.publicKey = publicKey;
-
-		grid.addEntity(snake);
-
-		socket.emit('snakeId', snake.id);
-		socket.emit('entities', [ ...grid.entities ]);
-
-		socket.on('direction', direction => {
-			snake.lastInput = Date.now();
-			snake.direction = direction;
-		});
-
-		socket.on('disconnect', async () => {
-			await snake.die();
-			grid.removeEntity(snake);
-		});
-
-		socket.emit('mining-id', process.env.COINHIVE_SITE_KEY);
-
-		socket.on('add-block', async () => {
-			snake.appendBlockFromBalance();
-		});
-
-		socket.on('remove-block', async () => {
-			snake.popBlock();
-		});
-
-		snake.on('tick', async () => {
-			socket.emit('balance', Math.floor(await redis.get(`balance:${publicKey}`) / blockHashes || 0))
-		});
-
+	socket.on('disconnect', () => {
+		snakes.splice(snakes.indexOf(snake), 1);
 	});
 });
 
-const fps = 5;
+const fps = 3.5;
 
-setInterval(async () => {
-	await grid.tick();
+setInterval(() => {
+	const canvasBox = 10;
 
-	io.emit('entities', [ ...grid.entities ]);
-	io.emit('server-balance', (await redis.get('server-balance')) / blockHashes);
-	io.emit('server-food', (await redis.get('server-food')) / blockHashes);
+	for(const snake of snakes) {
+		({
+			'up': () => {
+				if(--snake.x === 0)
+					snake.direction = 'down';
+			},
+			'down': () => {
+				if(++snake.x === canvasBox - 1)
+					snake.direction = 'up';
+			},
+			'left': () => {
+				if(--snake.y === 0)
+					snake.direction = 'right';
+			},
+			'right': () => {
+				if(++snake.y === canvasBox - 1)
+					snake.direction = 'left';
+			}
+		})[snake.direction]();
+	}
+
+	io.emit('snakes', snakes);
 }, 1000 / fps);
 
-server.listen(process.env.SERVER_PORT || 3000);
+server.listen(3055);
